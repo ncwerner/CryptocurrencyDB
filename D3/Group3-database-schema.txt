@@ -11,10 +11,11 @@ CREATE TABLE Cryptocurrency
 (cryptoNameID INT NOT NULL PRIMARY KEY,
 cryptoCoinName VARCHAR2(40) UNIQUE,
 cryptoRank INT,
-MonetaryValue VARCHAR2(40));
+MonetaryValue VARCHAR2(40) FOREIGN KEY);
 
 CREATE TABLE MonetaryValue
 (timeDate DATE NOT NULL PRIMARY KEY,
+Cryptocurrency VARCHAR2(40) FOREIGN KEY,
 cryptoTotalWorth NUMBER(38,16),
 cryptoCurrentPrice NUMBER(38,16),
 pctChange24Hr DECIMAL(18,0),
