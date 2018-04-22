@@ -5,7 +5,7 @@
 
     if (isset($_POST['login_button'])) {			
 
-        if (isset($_POST['username']) && isset($_POST['pass'])) {
+        if (!empty($_POST['username']) && !empty($_POST['pass'])) {
 			//header("Location: /dashboard.html");
 		
             $email = $_POST['username'];
@@ -19,8 +19,8 @@
 				$_SESSION['error'] =  "Connection Timed Out";
 			}
 			else
-			{	//echo "did it";		
-				$database->parseQuery("SELECT EMAILUSER, USERPASSWORD FROM HOWERTER.PRIMARYUSER WHERE EMAILUSER = :id_bv");
+			{		
+				$database->parseQuery("SELECT USERID, EMAILUSER, USERPASSWORD FROM HOWERTER.PRIMARYUSER WHERE EMAILUSER = :id_bv OR USERID = :id_bv");
 				oci_bind_by_name($database->stid, ":id_bv", $email);			
 				
 				if(!$database->stid)
@@ -32,7 +32,8 @@
 				
 				$row = oci_fetch_array($database->stid, OCI_ASSOC+OCI_RETURN_NULLS);
 
-				if ($row !== false) {
+				if ($row !== false) 
+				{
 
 					if (password_verify($pass,$row['USERPASSWORD'])) 
 					{
@@ -43,11 +44,13 @@
 						header('Location: /dashboard.html');
 						exit;
 					}
-					else {
+					else
+					{
 						$_SESSION['error'] = "Invalid email or password. Please try again.";
 					}
 				}
-				else {
+				else 
+				{
 					$_SESSION['error'] =  "Invalid email or password. Please try again.";
 				}
 		    }
@@ -94,7 +97,7 @@
 			<a href="recover.html">Forgot Password?</a> <br><br>
             <button type="submit"name="login_button" class="button_1">Login</button><br>
 	    </form>
-        <form action="user.html">
+        <form action="create.html">
             <button type="submit" class="button_1">Create Account</button>
         </form>
 		<div id="error">

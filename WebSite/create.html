@@ -1,4 +1,84 @@
-﻿<!DOCTYPE html>
+﻿<?php
+	require('Connect.php');
+
+    session_start();
+
+    if (isset($_POST['create_button'])) 
+	{			
+
+        if (!empty($_POST['userId']) && !empty($_POST['pass']) && !empty($_POST['passRepeat']) && !empty($_POST['userEmail']) && isset($_POST['userCurrencies'])) 
+		{
+	
+		    $uId = $_POST['userId'];
+            $email = $_POST['userEmail'];
+            $pass = $_POST['pass'];			
+			$passVerify = $_POST['passRepeat'];
+			$currencies = $_POST['userCurrencies'];
+			if($pass === $passVerify)
+			{
+				$database = new Oci;
+				$database->connect();		
+				if(!$database->isConnected)
+				{
+					$_SESSION['error'] =  "Connection Timed Out";
+				}
+				else
+				{
+					$database->parseQuery("SELECT EMAILUSER, USERPASSWORD FROM HOWERTER.PRIMARYUSER WHERE EMAILUSER = :email_bv OR USERID = :id_bv");
+					oci_bind_by_name($database->stid, ":id_bv", $uId);
+					oci_bind_by_name($database->stid, ":email_bv", $email);						
+					
+					if(!$database->stid)
+					{
+						$_SESSION['error'] = 'Could not parse database query';
+						exit;
+					}		
+					oci_execute($database->stid);
+					
+					$row = oci_fetch_array($database->stid, OCI_ASSOC+OCI_RETURN_NULLS);
+
+					if ($row === false) 
+					{
+						$pwHash = password_hash($pass, PASSWORD_DEFAULT);
+						$database->parseQuery("INSERT INTO HOWERTER.PRIMARYUSER VALUES(:id_bv, :email_bv, :pass_bv, :currencies_bv)");
+						oci_bind_by_name($database->stid, ":id_bv", $uId);
+						oci_bind_by_name($database->stid, ":email_bv", $email);	
+						oci_bind_by_name($database->stid, ":pass_bv", $pwHash);	
+						oci_bind_by_name($database->stid, ":currencies_bv", $currencies);					
+						
+						if(!$database->stid)
+						{
+							$_SESSION['error'] = 'Could not parse database query';
+							exit;
+						}		
+						oci_execute($database->stid);
+						
+							$_SESSION['is_auth'] = true;	
+
+						// Once the sessions variables have been set, redirect them to the landing page / home page.
+						header('refresh=5; url=Location: /welcome.html');.
+						echo '<span class="highlight">Account Created!</span>';
+						exit;
+						
+					}
+					else 
+					{
+						$_SESSION['error'] =  "User Name or email already in use.";
+					}				
+					
+				}
+			}
+            else {
+				$_SESSION['error'] =  "Passwords do not match. Please try again.";
+			}
+		}
+		else 
+		{
+			$_SESSION['error'] =  "All fields must be filled out.";
+		}
+    }
+?>
+<!DOCTYPE html>
 <html>
   <head>
       <meta charset="utf-8">
@@ -23,28 +103,39 @@
         <article id="sidebar">
           <div class="dark">
             <h3>Account Details</h3>
-            <form class="quote" action ="dashboard.html" >
+            <form class="quote" action ="" method="post" >
   			    <div>
   				    <label>User Name</label><br>
-  				    <input type="text" placeholder="User Name">
+  				    <input type="text" name=userId>
   			    </div>
                 <div>
                     <label>Password</label><br>
-                    <input type="password" placeholder="Password">
+                    <input type="password" name=pass>
                 </div>
                 <div>
                     <label>Repeat Password</label><br>
-                    <input type="password" placeholder="Password">
+                    <input type="password" name=passRepeat>
                 </div>
   			    <div>
   				    <label>Email</label><br>
-  				    <input type="email" placeholder="Email Address">
+  				    <input type="email" name=userEmail>
   			    </div>
   			    <div>
   				    <label>Favorite Cryptocurrencies</label><br>
-  				    <textarea placeholder="Bitcoin, ..."></textarea>
+  				    <textarea name=userCurrencies></textarea>
   			    </div>
-  			    <button class="button_1" type="submit">Create Account</button>
+  			    <button class="button_1" name=create_button type="submit">Create Account</button>
+				<div id="error">
+				  <span class="highlight">
+					<?php 
+					if (!empty($_SESSION['error']))
+					{
+						echo $_SESSION['error'];			
+						unset($_SESSION['error']);
+					}  
+					?>
+				   </span>
+                </div> 
 			</form>
           </div>
         </article>
