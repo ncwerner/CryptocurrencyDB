@@ -1,10 +1,63 @@
-﻿<?php
-	require('Connect.php');
+<?php
+   require('Connect.php');
 
-    session_start();
+   session_start();
    
+   //If the user has no favorite currencies
+   if($_SESSION['cryptoList'][0] == ''){
+     $_SESSION['error'] = 'User has no favorite currencies!';
+   }
+
+   //User has favorites but none selected
+   elseif($_SESSION['currCrypto'] == '']){
+
+     //Go do query magic
+     $_SESSION['results'] = doQuery($_SESSION['cryptoList'][0]);
+   }
+   
+   //User has selected a currency
+   elseif(!$_SESSION['currCrypto'] == ''){
+     
+     //Go do query magic
+     $_SESSION['results'] = doQuery($_SESSION['cryptoList'][$_SESSION['currCrypto']]);
+
+   }
+
+   function doQuery($name){
+     $database = new Oci;
+     $database->connect();
+
+     if(!$database->isConnected){
+       $_SESSION['error'] = "Connection Timed Out";
+     }
+     else{
+       $database->parseQuery("Select m.pctchange24hr, m.pctchange7day,
+       m.cryptocurrentprice, c.cryptonameif, c.cryptocoinname From
+       Howerter.Cryptocurrency c inner join Howerter.MonetaryValue m
+       ON c.cryptonameid = m.cryptonameid_fk WHERE c.cryptocoinname =
+       :id_bv")
+       
+       oci_bind_by_name($database->stid, ":id_bv", $name);
+
+       if(!$database->stid){
+         $_SESSION['error'] = 'Could not parse database query';
+         exit;
+       }
+
+       oci_execute($databse->stid);
+
+       $array = array();
+
+       while($row = oci_fetch_array($database->stid, OCI_ASSOC+OCI_RETURN_NULLS)){
+
+         $array[] = $row;
+       }
+
+       return $array;
+   }
+
 ?>
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
   <head>
       <script src="JavaScript/Chart.bundle.js"></script>
