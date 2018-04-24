@@ -3,57 +3,54 @@
 
    session_start();
    
-   //If the user has no favorite currencies
-   if($_SESSION['cryptoList'][0] == ''){
-     $_SESSION['error'] = 'User has no favorite currencies!';
+   if (isset($_POST['update_button']))
+   {		
+		//If the user has no favorite currencies
+	   if(!isset($_POST['curr_crypto_list'])){
+		 $_SESSION['error'] = 'User has no favorite currencies!';		
+	   }
+	   //User has selected a currency
+	   else{
+		 
+		 //Go do query magic
+		 $_SESSION['results'] = doQuery($_POST['curr_crypto_list']);
+	   }
    }
-
-   //User has favorites but none selected
-   elseif($_SESSION['currCrypto'] == '']){
-
-     //Go do query magic
-     $_SESSION['results'] = doQuery($_SESSION['cryptoList'][0]);
-   }
-   
-   //User has selected a currency
-   elseif(!$_SESSION['currCrypto'] == ''){
-     
-     //Go do query magic
-     $_SESSION['results'] = doQuery($_SESSION['cryptoList'][$_SESSION['currCrypto']]);
-
-   }
-
+  
+	
    function doQuery($name){
      $database = new Oci;
-     $database->connect();
+	    $database->connect();
+	 if(!$database->isConnected){
+	   $_SESSION['error'] = "Connection Timed Out";
+	  
+	 }
+	 else{
+	   $database->parseQuery("Select m.timedate, m.pctchange24hr, m.pctchange7day,
+	   m.cryptocurrentprice, c.cryptonameid, c.cryptocoinname From
+	   Howerter.Cryptocurrency c inner join Howerter.MonetaryValue m
+	   ON c.cryptonameid = m.cryptonameid_fk WHERE c.cryptocoinname =
+	   :id_bv");
+	   
+	   oci_bind_by_name($database->stid, ":id_bv", $name);
 
-     if(!$database->isConnected){
-       $_SESSION['error'] = "Connection Timed Out";
-     }
-     else{
-       $database->parseQuery("Select m.pctchange24hr, m.pctchange7day,
-       m.cryptocurrentprice, c.cryptonameif, c.cryptocoinname From
-       Howerter.Cryptocurrency c inner join Howerter.MonetaryValue m
-       ON c.cryptonameid = m.cryptonameid_fk WHERE c.cryptocoinname =
-       :id_bv")
-       
-       oci_bind_by_name($database->stid, ":id_bv", $name);
+	   if(!$database->stid){
+		 $_SESSION['error'] = 'Could not parse database query';
+		 exit;
+	   }
 
-       if(!$database->stid){
-         $_SESSION['error'] = 'Could not parse database query';
-         exit;
-       }
+	   oci_execute($database->stid);
 
-       oci_execute($databse->stid);
+	   $array = array();
 
-       $array = array();
-
-       while($row = oci_fetch_array($database->stid, OCI_ASSOC+OCI_RETURN_NULLS)){
-
-         $array[] = $row;
-       }
-
-       return $array;
+	   while($row = oci_fetch_array($database->stid, OCI_ASSOC+OCI_RETURN_NULLS)){
+	   
+	  
+		 $array[] = $row;
+		
+	   }
+	   return $array;
+	   }
    }
 
 ?>
@@ -87,22 +84,46 @@
         </nav>		
       </div>	  
     </header>
-
     <section id="main">
       <div class="container">
         <article id="main-col">
-          <h1 class="page-title">Main Dashboard</h1>
-		  <div class="page-title">User: <?php if(isset($_SESSION['id'])){echo $_SESSION['id']; echo $_SESSION['crypto'];}?></div>		  
-          <canvas id="myChart" width="800" height="400"></canvas>           
-            <script>
+          <h1 class="page-title">Main Dashboard</h1>		  	
+          <canvas id="myChart" width="1000" height="400"></canvas>           
+            <script>				
                 var ctx = document.getElementById("myChart").getContext("2d");
+				var minTick = Math.max;
+				var maxTick = 0;
+				var currentValue;
+				var posixTime;
+				var arrData = [];
+				var labelData = [];	
+				<?php
+				if(isset($_SESSION['results']))
+				{
+									
+					for ($i = 0; $i < count($_SESSION['results']); $i++)
+						{	
+				?>					
+						currentValue = '<?php echo $_SESSION['results'][$i]["CRYPTOCURRENTPRICE"];?>';
+						posixTime = '<?php echo $_SESSION['results'][$i]["TIMEDATE"];?>';
+						arrData.push(currentValue);	
+						if(maxTick < currentValue)
+							maxTick = currentValue;
+						if(minTick > currentValue)
+							minTick = currentValue;
+						labelData.push(posixTime);						
+				<?php
+						}						
+				}
+				?>
+				
                 var myChart = new Chart(ctx, {
                     type: 'line',
-                    data: {
-                        labels: ["1", "2", "3", "4", "5", "6"],
+                    data: { 
+						labels: labelData,					
                         datasets: [{
                             label: 'Currency Values',
-                            data: [12, 19, 3, 5, 2, 3],
+                            data: arrData,
                             backgroundColor: [
                                 'rgba(255, 99, 132, 0.2)',
                                 'rgba(54, 162, 235, 0.2)',
@@ -122,14 +143,27 @@
                             borderWidth: 1
                         }]
                     },
-                    options: {
-                        scales: {
+                    options: 
+					{
+                        scales: 
+						{
+						   xAxes: [{                           
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Posix DateTime'
+                            }
+                            }],
                             yAxes: [{
+							scaleLabel: {
+                                display: true,
+                                labelString: 'Current Prices'
+                            },
                                 ticks: {
-                                    beginAtZero:true
+                                    min: parseFloat(minTick, 10),
+									max: parseFloat(maxTick, 10)
                                 }
                             }]
-                        }
+                        }					
                     }
                    });
             </script>          

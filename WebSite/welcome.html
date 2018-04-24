@@ -49,6 +49,7 @@
                         $_SESSION['id'] = $row['USERID'];
 						$_SESSION['crypto'] = $row['CRYPTOWALLET'];
 						$_SESSION['cryptoList'] = $array;
+						$_SESSION['currCrypto'] = 0;
 					
 						// Once the sessions variables have been set, redirect them to the dashboard.
 						header('Location: /dashboard.html');
