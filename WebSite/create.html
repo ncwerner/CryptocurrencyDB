@@ -39,8 +39,11 @@
 
 					if ($row === false) 
 					{
+						oci_free_statement($database->stid);
+						$database->stid = FALSE;
+					
 						$pwHash = password_hash($pass, PASSWORD_DEFAULT);
-						$database->parseQuery("INSERT INTO HOWERTER.PRIMARYUSER VALUES(:id_bv, :email_bv, :pass_bv, :currencies_bv)");
+						$database->parseQuery("INSERT INTO HOWERTER.PRIMARYUSER VALUES(:id_bv, :pass_bv, :email_bv, :currencies_bv)");
 						oci_bind_by_name($database->stid, ":id_bv", $uId);
 						oci_bind_by_name($database->stid, ":email_bv", $email);	
 						oci_bind_by_name($database->stid, ":pass_bv", $pwHash);	
@@ -51,14 +54,20 @@
 							$_SESSION['error'] = 'Could not parse database query';
 							exit;
 						}		
-						oci_execute($database->stid);
-						
-							$_SESSION['is_auth'] = true;	
-
-						// Once the sessions variables have been set, redirect them to the landing page / home page.
-						header('refresh=5; url=Location: /welcome.html');
-						echo '<span class="highlight">Account Created!</span>';
-						exit;
+						$response = oci_execute($database->stid);
+												
+							
+						if(!$response)
+						{
+							$_SESSION['error'] =  "Database error account could not be created.";
+						}
+						else
+						{						
+							header('refresh:5; url=welcome.html');
+							echo '<span class="highlight">Account Created!</span>';
+							exit;
+						}
+					
 						
 					}
 					else 

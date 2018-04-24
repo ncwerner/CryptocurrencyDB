@@ -1,12 +1,18 @@
 ﻿<?php
 	require('Connect.php');
 
+	if(isset($_GET['logout']))
+	{
+		if($_GET['logout'] === "true")
+		{
+			session_destroy();
+		}
+	}
     session_start();
 
     if (isset($_POST['login_button'])) {			
 
-        if (!empty($_POST['username']) && !empty($_POST['pass'])) {
-			//header("Location: /dashboard.html");
+        if (!empty($_POST['username']) && !empty($_POST['pass'])) {			
 		
             $email = $_POST['username'];
 
@@ -20,7 +26,7 @@
 			}
 			else
 			{		
-				$database->parseQuery("SELECT USERID, EMAILUSER, USERPASSWORD FROM HOWERTER.PRIMARYUSER WHERE EMAILUSER = :id_bv OR USERID = :id_bv");
+				$database->parseQuery("SELECT USERID, EMAILUSER, USERPASSWORD, CRYPTOWALLET FROM HOWERTER.PRIMARYUSER WHERE EMAILUSER = :id_bv");
 				oci_bind_by_name($database->stid, ":id_bv", $email);			
 				
 				if(!$database->stid)
@@ -31,16 +37,20 @@
 				oci_execute($database->stid);
 				
 				$row = oci_fetch_array($database->stid, OCI_ASSOC+OCI_RETURN_NULLS);
-
+                oci_free_statement($database->stid);
 				if ($row !== false) 
 				{
 
 					if (password_verify($pass,$row['USERPASSWORD'])) 
 					{
-
+						$crytpoStr = str_replace(' ','',$row['CRYPTOWALLET']);
+                        $array = explode(',', $crytpoStr);
 						$_SESSION['is_auth'] = true;	
-
-						// Once the sessions variables have been set, redirect them to the landing page / home page.
+                        $_SESSION['id'] = $row['USERID'];
+						$_SESSION['crypto'] = $row['CRYPTOWALLET'];
+						$_SESSION['cryptoList'] = $array;
+					
+						// Once the sessions variables have been set, redirect them to the dashboard.
 						header('Location: /dashboard.html');
 						exit;
 					}
