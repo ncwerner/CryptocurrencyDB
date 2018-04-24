@@ -1,3 +1,63 @@
+<?php
+   require('Connect.php');
+
+   session_Start();
+   
+   //If the user has no favorite currencies
+   if($_SESSION['cryptoList'][0] == ''){
+     $_SESSION['error'] = 'User has no favorite currencies!';
+   }
+
+   //User has selected a currency
+   else{
+     //Clear any previous results
+     $_SESSION['results'] = '';
+
+     //Loop through each currency in the user's wallet
+     foreach ($_SESSION['cryptoList'] as &$val){
+
+       //Go do query magic
+       $temp = doQuery($value);
+       
+       $_SESSION['results'] = array_merge($_SESSION['results'],$temp);
+     }
+
+     unset($val);
+   }
+
+   function doQuery($name){
+     $database = new Oci;
+     $database->connect();
+
+     if(!$database->isConnected){
+       $_SESSION['error'] = "Connection Timed Out";
+     }
+     else{
+       $database->parseQuery("Select max(volume24hr) from
+       Howerter.monetaryValue m inner join Howerter.cryptocurrency c ON
+       m.cryptonameid_fk = c.cryptonameid and c.cryptocoinname = :id_bv;")
+       
+       oci_bind_by_name($database->stid, ":id_bv", $name);
+
+       if(!$database->stid){
+         $_SESSION['error'] = 'Could not parse database query';
+         exit;
+       }
+
+       oci_execute($databse->stid);
+
+       $array = array();
+
+       while($row = oci_fetch_array($database->stid, OCI_ASSOC+OCI_RETURN_NULLS)){
+
+         $array[] = $row;
+       }
+
+       return $array;
+   }
+
+?>
+
 ﻿<!DOCTYPE html>
 <html>
   <head>
