@@ -1,3 +1,77 @@
+<?php
+   require('Connect.php');
+
+   session_start();
+   
+   //User has selected two currencies and those currencies exist
+   if($_SESSION['cmp1'] != '' && $_SESSION['cmp2'] != '' &&
+   $_SESSION['cryptoList'][$_SESSION['cmp1'] != '' &&
+   $_SESSION['cryptoList'][$_SESSION['cmp2'] != ''){
+     
+     //Go do query magic
+     $_SESSION['results'] =
+     doQuery($_SESSION['cryptoList'][$_SESSION['cmp1']], $_SESSION['cryptoList'][$_SESSION['cmp2']]);
+
+   }
+
+   else{
+     $_SESSION['error'] = "User did not select two currencies to
+     compare or does not have any favorite currencies";
+   }
+
+   function doQuery($cmp1, $cmp2){
+     $database = new Oci;
+     $database->connect();
+
+     if(!$database->isConnected){
+       $_SESSION['error'] = "Connection Timed Out";
+     }
+     else{
+       $database->parseQuery("Select c1.cryptocoinname,
+       c1.cryptonameid, c1.cryptocurrentprice, c1.cryptopriceBTC,
+       c2.cryptocoinname, c2.cryptonameid, c2.cryptocurrentprice, c2.cryptopriceBTC,
+       c1.cryptopriceBTC / c2.cryptopriceBTC as exRate,
+       c1.cryptocurrentprice - c2.cryptocurrentprice as priceDiff From
+       ((Select Distinct mt1.timedate, ct1.cryptocoinname,
+       ct1.cryptonameid, mt1.cryptocurrentprice, mt1.cryptopriceBTC
+       From Howerter.cryptocurrency ct1 Inner Join
+       Howerter.MonetaryValue mt1 on ct1.cryptonameid =
+       mt1.cryptonameid_fk) c1 Inner Join (Select Distinct
+       mt2.timedate, ct2.cryptocoinname, ct2.cryptonameid,
+       mt2.cryptocurrentprice,mt2.cryptopriceBTC From
+       Howerter.cryptocurrency ct2 Inner Join Howerter.MonetaryValue
+       mt2 on ct2.cryptonameid = mt2.cryptonameid_fk) c2 On
+       c1.cryptocoinname = :cmp1 And c2.cryptocoinname = :cmp2) Where
+       c1.timedate = (select max(mt1.timedate) from
+       Howerter.cryptocurrency ct1 Inner Join Howerter.MonetaryValue
+       mt1 on ct1.cryptonameid = mt1.cryptonameid_fk and
+       ct1.cryptocoinname = :cmp1) And c2.timedate = (Select
+       max(mt1.timedate) from Howerter.cryptocurrency ct1 Inner Join
+       Howerter.MonetaryValue mt1 on ct1.cryptonameid =
+       mt1.cryptonameid_fk and ct1.cryptocoinname = :cmp2)");
+       
+       oci_bind_by_name($database->stid, ":cmp1", $cmp1);
+       oci_bind_by_name($database->stid, ":cmp2", $cmp2);
+
+       if(!$database->stid){
+         $_SESSION['error'] = 'Could not parse database query';
+         exit;
+       }
+
+       oci_execute($databse->stid);
+
+       $array = array();
+
+       while($row = oci_fetch_array($database->stid, OCI_ASSOC+OCI_RETURN_NULLS)){
+
+         $array[] = $row;
+       }
+
+       return $array;
+   }
+
+?>
+
 ﻿<!DOCTYPE html>
 <html>
   <head>
