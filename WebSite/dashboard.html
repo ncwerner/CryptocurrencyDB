@@ -1,4 +1,10 @@
-﻿<!DOCTYPE html>
+﻿<?php
+	require('Connect.php');
+
+    session_start();
+   
+?>
+<!DOCTYPE html>
 <html>
   <head>
       <script src="JavaScript/Chart.bundle.js"></script>
@@ -23,16 +29,17 @@
             <li><a href="compare.html">Compare</a></li>
             <li><a href="archive.html">Archive</a></li>
             <li><a href="heatmap.html">Heat Map</a></li>
-            <li><a href="welcome.html">Logout</a></li>
+            <li><a href="welcome.html?logout=true">Logout</a></li>			
           </ul>
-        </nav>
-      </div>
+        </nav>		
+      </div>	  
     </header>
 
     <section id="main">
       <div class="container">
         <article id="main-col">
-          <h1 class="page-title">Main Dashboard</h1>            
+          <h1 class="page-title">Main Dashboard</h1>
+		  <div class="page-title">User: <?php if(isset($_SESSION['id'])){echo $_SESSION['id']; echo $_SESSION['crypto'];}?></div>		  
           <canvas id="myChart" width="800" height="400"></canvas>           
             <script>
                 var ctx = document.getElementById("myChart").getContext("2d");
@@ -74,6 +81,51 @@
                    });
             </script>          
         </article>     
+      </div>
+    </section>
+	<section id="main">
+      <div class="container">
+        <article id="sidebar">
+          <div class="dark">
+            <h3>Account Details</h3>
+            <form class="quote" action ="" method="post" >
+				<select name="curr_crypto_list">
+				<?php
+				
+				if(isset($_SESSION['cryptoList']))
+					{
+						for ($i = 0; $i < count($_SESSION['cryptoList']); $i++)
+						{						   
+							echo "<option>";
+							echo $_SESSION['cryptoList'][$i];
+							echo "</option>";				
+						}
+					}
+				?>
+			    </select>
+  			    <div>
+  				    <label>User Name</label><br>  		
+                    <label><?php if(isset($_SESSION['id'])){echo $_SESSION['id'];}?></label><br>  						
+  			    </div>     
+  			    <div>
+  				    <label>Favorite Cryptocurrencies</label><br>  		
+                    <label><?php if(isset($_SESSION['crypto'])){echo $_SESSION['crypto'];}?></label><br>  						
+  			    </div>
+  			    <button class="button_1" name=update_button type="submit">Update</button>
+				<div id="error">
+				  <span class="highlight">
+					<?php 
+					if (!empty($_SESSION['error']))
+					{
+						echo $_SESSION['error'];			
+						unset($_SESSION['error']);
+					}  
+					?>
+				   </span>
+                </div> 
+			</form>
+          </div>
+        </article>
       </div>
     </section>
 
