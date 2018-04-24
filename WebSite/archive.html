@@ -3,31 +3,27 @@
 
    session_Start();
    
-   //If the user has no favorite currencies
-   if($_SESSION['cryptoList'][0] == ''){
-     $_SESSION['error'] = 'User has no favorite currencies!';
+    
+   if (isset($_POST['update_button']) && !empty($_POST['start_time']))
+   {		  
+		//If the user has no favorite currencies
+	   if(!isset($_POST['curr_crypto_list'])){
+		 $_SESSION['error'] = 'User has no favorite currencies!';		
+	   }
+	   //User has selected a currency
+	   else{
+		 
+		 //Go do query magic	
+		$_SESSION['results'] = doQuery($_POST['curr_crypto_list'], strtotime($_POST['start_time']));
+	   }
    }
-
-   //User has favorites but none selected
-   elseif($_SESSION['currCrypto'] == '']){
-
-     //Go do query magic
-     $_SESSION['results'] = doQuery($_SESSION['cryptoList'][0], strtotime(now));
-   }
-   
-   //User has selected a currency
-   elseif(!$_SESSION['currCrypto'] == ''){
-     
-     //Go do query magic
-     $_SESSION['results'] =
-     doQuery($_SESSION['cryptoList'][$_SESSION['currCrypto']], strtotime($_SESSION['startTime']));
-
+   else{
+   $_SESSION['error'] = 'Please select a starting date and time';
    }
 
    function doQuery($name, $date){
      $database = new Oci;
-     $database->connect();
-
+     $database->connect();		
      if(!$database->isConnected){
        $_SESSION['error'] = "Connection Timed Out";
      }
@@ -36,7 +32,7 @@
        m.cryptocurrentprice, c.cryptonameid, c.cryptocoinname From
        Howerter.Cryptocurrency c inner join Howerter.MonetaryValue m
        ON c.cryptonameid = m.cryptonameid_fk WHERE c.cryptocoinname =
-       :id_bv AND m.TimeDate < :id_date;")
+       :id_bv AND m.TimeDate < :id_date");
        
        oci_bind_by_name($database->stid, ":id_bv", $name);
        oci_bind_by_name($database->stid, ":id_date", $date);       
@@ -46,7 +42,7 @@
          exit;
        }
 
-       oci_execute($databse->stid);
+       oci_execute($database->stid);
 
        $array = array();
 
@@ -56,6 +52,7 @@
        }
 
        return $array;
+	   }
    }
 
 ?>
@@ -97,14 +94,40 @@
                 <h1 class="page-title">View Archived Data</h1>
                 <canvas id="myChart" width="800" height="400"></canvas>
                 <script>
-                var ctx = document.getElementById("myChart").getContext("2d");
+                 var ctx = document.getElementById("myChart").getContext("2d");
+				var minTick = Math.max;
+				var maxTick = 0;
+				var currentValue;
+				var posixTime;
+				var arrData = [];
+				var labelData = [];	
+				<?php
+				if(isset($_SESSION['results']))
+				{
+									
+					for ($i = 0; $i < count($_SESSION['results']); $i++)
+						{	
+				?>					
+						currentValue = '<?php echo $_SESSION['results'][$i]["CRYPTOCURRENTPRICE"];?>';
+						posixTime = '<?php echo $_SESSION['results'][$i]["TIMEDATE"];?>';
+						arrData.push(currentValue);	
+						if(maxTick < currentValue)
+							maxTick = currentValue;
+						if(minTick > currentValue)
+							minTick = currentValue;
+						labelData.push(posixTime);						
+				<?php
+						}						
+				}
+				?>
+				
                 var myChart = new Chart(ctx, {
                     type: 'line',
-                    data: {
-                        labels: ["1", "2", "3", "4", "5", "6"],
+                    data: { 
+						labels: labelData,					
                         datasets: [{
                             label: 'Currency Values',
-                            data: [12, 19, 3, 5, 2, 3],
+                            data: arrData,
                             backgroundColor: [
                                 'rgba(255, 99, 132, 0.2)',
                                 'rgba(54, 162, 235, 0.2)',
@@ -124,19 +147,85 @@
                             borderWidth: 1
                         }]
                     },
-                    options: {
-                        scales: {
+                    options: 
+					{
+					   title: {
+						display: true,
+						text: 'Custom Chart Title'
+						},
+                        scales: 
+						{
+						   xAxes: [{                           
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Posix DateTime'
+                            }
+                            }],
                             yAxes: [{
+							scaleLabel: {
+                                display: true,
+                                labelString: 'Current Prices'
+                            },
                                 ticks: {
-                                    beginAtZero:true
+                                    min: parseFloat(minTick, 10),
+									max: parseFloat(maxTick, 10)
                                 }
                             }]
-                        }
+                        }					
                     }
                    });
                 </script> 
             </article>
         </div>
+    </section>
+	<section id="main">
+      <div class="container">
+        <article id="sidebar">
+          <div class="dark">
+            <h3>Account Details</h3>
+            <form class="quote" action ="" method="post" >
+			<div>
+  				    <label>Select Start Time</label><br>
+  				    <input type="datetime-local" name=start_time>
+  			    </div>
+				<select name="curr_crypto_list">
+				<?php
+				
+				if(isset($_SESSION['cryptoList']))
+					{
+						for ($i = 0; $i < count($_SESSION['cryptoList']); $i++)
+						{						   
+							echo "<option>";
+							echo $_SESSION['cryptoList'][$i];
+							echo "</option>";				
+						}
+					}
+				?>
+			    </select>
+  			    <div>
+  				    <label>User Name</label><br>  		
+                    <label><?php if(isset($_SESSION['id'])){echo $_SESSION['id'];}?></label><br>  						
+  			    </div>     
+  			    <div>
+  				    <label>Favorite Cryptocurrencies</label><br>  		
+                    <label><?php if(isset($_SESSION['crypto'])){echo $_SESSION['crypto'];}?></label><br>  						
+  			    </div>
+  			    <button class="button_1" name=update_button type="submit">Update</button>			
+			</form>			
+          </div>
+			  <div id="error">
+			  <span class="highlight">
+				<?php 
+				if (!empty($_SESSION['error']))
+				{
+					echo $_SESSION['error'];			
+					unset($_SESSION['error']);
+				}  
+				?>
+			   </span>
+        </div> 
+        </article>
+      </div>
     </section>
 
     <footer>

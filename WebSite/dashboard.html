@@ -20,7 +20,7 @@
 	
    function doQuery($name){
      $database = new Oci;
-	    $database->connect();
+	  $database->connect();
 	 if(!$database->isConnected){
 	   $_SESSION['error'] = "Connection Timed Out";
 	  
@@ -145,6 +145,10 @@
                     },
                     options: 
 					{
+					   title: {
+						display: true,
+						text: 'Custom Chart Title'
+						},
                         scales: 
 						{
 						   xAxes: [{                           
@@ -211,6 +215,17 @@
 				   </span>
                 </div> 
 			</form>
+				<div id="error">
+          <span class="highlight">
+		    <?php 
+			if (!empty($_SESSION['error']))
+			{
+				echo $_SESSION['error'];			
+				unset($_SESSION['error']);
+			}  
+			?>
+		   </span>
+        </div> 
           </div>
         </article>
       </div>
