@@ -3,10 +3,14 @@
 
 	if(isset($_GET['logout']))
 	{
-		if($_GET['logout'] === "true")
+		if(isset($_SESSION))
 		{
-			session_destroy();
+			if($_GET['logout'] === "true")
+			{
+				session_destroy();
+			}
 		}
+		
 	}
     session_start();
 

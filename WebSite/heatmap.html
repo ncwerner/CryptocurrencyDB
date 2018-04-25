@@ -1,29 +1,21 @@
 <?php
    require('Connect.php');
 
-   session_Start();
+   session_Start();     		  
    
-   //If the user has no favorite currencies
-   if($_SESSION['cryptoList'][0] == ''){
-     $_SESSION['error'] = 'User has no favorite currencies!';
-   }
-
-   //User has selected a currency
-   else{
-     //Clear any previous results
-     $_SESSION['results'] = '';
-
-     //Loop through each currency in the user's wallet
-     foreach ($_SESSION['cryptoList'] as &$val){
-
-       //Go do query magic
-       $temp = doQuery($value);
-       
-       $_SESSION['results'] = array_merge($_SESSION['results'],$temp);
-     }
-
-     unset($val);
-   }
+  //Clear any previous results
+  unset($_SESSION['results']);
+  $dataArr = array();
+ //Loop through each currency in the user's wallet
+ foreach ($_SESSION['cryptoList'] as $val){
+	
+   //Go do query magic
+   $temp = doQuery($val);
+   
+   $dataArr = array_merge($dataArr,$temp);
+ }
+ $_SESSION['results'] = $dataArr;       
+ 
 
    function doQuery($name){
      $database = new Oci;
@@ -35,7 +27,7 @@
      else{
        $database->parseQuery("Select max(volume24hr) from
        Howerter.monetaryValue m inner join Howerter.cryptocurrency c ON
-       m.cryptonameid_fk = c.cryptonameid and c.cryptocoinname = :id_bv;")
+       m.cryptonameid_fk = c.cryptonameid and c.cryptocoinname = :id_bv");
        
        oci_bind_by_name($database->stid, ":id_bv", $name);
 
@@ -44,16 +36,16 @@
          exit;
        }
 
-       oci_execute($databse->stid);
+       oci_execute($database->stid);
 
        $array = array();
 
        while($row = oci_fetch_array($database->stid, OCI_ASSOC+OCI_RETURN_NULLS)){
-
          $array[] = $row;
        }
 
        return $array;
+	   }
    }
 
 ?>
@@ -83,7 +75,7 @@
                     <li><a href="compare.html">Compare</a></li>
                     <li><a href="archive.html">Archive</a></li>
                     <li class="current"><a href="heatmap.html">Heat Map</a></li>
-                    <li><a href="welcome.html">Logout</a></li>
+                    <li><a href="welcome.html?logout=true">Logout</a></li>
                 </ul>
             </nav>
         </div>
@@ -93,16 +85,39 @@
         <div class="container">
             <article id="main-col">
                 <h1 class="page-title">Cryptocurrency Heat Map</h1>
-                <canvas id="myChart" width="800" height="400"></canvas>
+                <canvas id="myChart" width="1000" height="400"></canvas>
                 <script>
-                var ctx = document.getElementById("myChart").getContext("2d");
+              var ctx = document.getElementById("myChart").getContext("2d");
+				var minTick = Math.max;
+				var maxTick = 0;
+				var currentValue;
+				var cryptoName;
+				var arrData = [];
+				var labelData = [];	
+				<?php
+				if(isset($_SESSION['results']))
+				{
+									
+					for ($i = 0; $i < count($_SESSION['results']); $i++)
+						{	
+				?>					
+						currentValue = '<?php echo $_SESSION['results'][$i]["MAX(VOLUME24HR)"];?>';
+						cryptoName = '<?php echo $_SESSION['cryptoList'][$i];?>';
+						arrData.push(currentValue);	
+						
+						labelData.push(cryptoName);						
+				<?php
+						}						
+				}
+				?>
+				
                 var myChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: ["1", "2", "3", "4", "5", "6"],
+                    type: 'bar',
+                    data: { 
+						labels: labelData,					
                         datasets: [{
-                            label: 'Currency Values',
-                            data: [12, 19, 3, 5, 2, 3],
+                            label: 'Volume Traded',
+                            data: arrData,
                             backgroundColor: [
                                 'rgba(255, 99, 132, 0.2)',
                                 'rgba(54, 162, 235, 0.2)',
@@ -118,18 +133,32 @@
                                 'rgba(75, 192, 192, 1)',
                                 'rgba(153, 102, 255, 1)',
                                 'rgba(255, 159, 64, 1)'
-                            ],
-                            borderWidth: 1
-                        }]
+                            ],							
+                        }]					
                     },
-                    options: {
-                        scales: {
+                    options: 
+					{					
+					   title: {
+						display: true,
+						text: 'Cyrypto Currency Heat Map(Volume Traded / 24hrs)'
+						},
+                        scales: 
+						{
+						   xAxes: [{                           
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Cryptocurrency Name'
+                            }
+                            }],
                             yAxes: [{
-                                ticks: {
-                                    beginAtZero:true
+							scaleLabel: {
+                                display: true,
+                                labelString: 'Volume/24hr'
+                            },
+                                ticks: {                                  
                                 }
                             }]
-                        }
+                        }					
                     }
                    });
                 </script> 

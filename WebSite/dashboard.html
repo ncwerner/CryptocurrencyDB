@@ -11,7 +11,7 @@
 	   }
 	   //User has selected a currency
 	   else{
-		 
+		 $_SESSION['cur1'] = $_POST['curr_crypto_list'];
 		 //Go do query magic
 		 $_SESSION['results'] = doQuery($_POST['curr_crypto_list']);
 	   }
@@ -140,14 +140,19 @@
                                 'rgba(153, 102, 255, 1)',
                                 'rgba(255, 159, 64, 1)'
                             ],
-                            borderWidth: 1
-                        }]
+                            borderWidth: 1,
+							fill: false,
+							lineTension: 0
+						
+							
+                        }]					
                     },
                     options: 
 					{
+					elements: { point: { radius: 0 } },
 					   title: {
 						display: true,
-						text: 'Custom Chart Title'
+						text: '<?php if(isset($_SESSION['cur1'])){echo $_SESSION['cur1'];}?>'
 						},
                         scales: 
 						{
@@ -214,18 +219,7 @@
 					?>
 				   </span>
                 </div> 
-			</form>
-				<div id="error">
-          <span class="highlight">
-		    <?php 
-			if (!empty($_SESSION['error']))
-			{
-				echo $_SESSION['error'];			
-				unset($_SESSION['error']);
-			}  
-			?>
-		   </span>
-        </div> 
+			</form>				
           </div>
         </article>
       </div>
